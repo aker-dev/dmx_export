@@ -14,10 +14,11 @@
 #     log    — diagnostics (groups + written paths)
 #
 # Behavior: scans every Block Instance whose full layer path starts with
-# "<layer_root>::", reads user attributes (id, gdtf, mode), sorts by layer
-# order then by id (alphabetical), auto-assigns DMX addresses from
-# CHANNEL_MAP, extracts position (meters) and forward vector from the block's
-# InstanceXform, then if `run` is True writes into `folder`:
+# "<layer_root>::", reads user attributes (id, gdtf, mode, channels), sorts
+# by layer order then by id (alphabetical), auto-assigns DMX addresses from
+# the per-block `channels` attribute, extracts position (meters) and forward
+# vector from the block's InstanceXform, then if `run` is True writes into
+# `folder`:
 #   - dmx_overview.csv    (human-readable patch table)
 #   - dmx_overview.json   (pivot for BlenderDMX and Chataigne)
 #   - venue.glb           (geometry of the VENUE layer, -90 deg X pre-rotated)
@@ -39,11 +40,6 @@ CSV_NAME       = "dmx_overview.csv"
 JSON_NAME      = "dmx_overview.json"
 
 FORWARD_LOCAL = (0.0, 0.0, 1.0)
-
-CHANNEL_MAP = {
-    ("AKER@Wash_RGBW_7C@Second_version.gdtf", "7 Channels"): 7,
-    ("BlenderDMX@RysyParLED@version7.gdtf",   "RGBW"):       6,
-}
 
 VENUE_XFORM = Rhino.Geometry.Transform.Rotation(
     math.radians(-90),
@@ -155,10 +151,11 @@ else:
         for obj in instances:
             a = obj.Attributes
             items.append({
-                "obj":  obj,
-                "id":   a.GetUserString("id")   or "",
-                "gdtf": a.GetUserString("gdtf") or "",
-                "mode": a.GetUserString("mode") or "",
+                "obj":      obj,
+                "id":       a.GetUserString("id")       or "",
+                "gdtf":     a.GetUserString("gdtf")     or "",
+                "mode":     a.GetUserString("mode")     or "",
+                "channels": a.GetUserString("channels") or "",
             })
 
         items.sort(key=lambda i: i["id"])
@@ -169,10 +166,12 @@ else:
                 log_lines.append("WARN: instance without 'id' on '{}', skipped".format(sub.Name))
                 continue
 
-            key = (it["gdtf"], it["mode"])
-            channels = CHANNEL_MAP.get(key)
-            if channels is None:
-                log_lines.append("WARN: no CHANNEL_MAP for {}, skipped {}".format(key, it["id"]))
+            try:
+                channels = int(it["channels"])
+                if channels <= 0:
+                    raise ValueError
+            except (TypeError, ValueError):
+                log_lines.append("WARN: missing/invalid 'channels' attribute on {}, skipped".format(it["id"]))
                 continue
 
             xform = it["obj"].InstanceXform

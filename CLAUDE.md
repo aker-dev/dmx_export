@@ -45,13 +45,13 @@ Layer order under LIGHTS determines DMX address allocation order.
 
 - `id` (string): fixture identifier, e.g. "BI-01". Drives DMX sort order (alpha).
 - `gdtf` (string): GDTF filename on disk, e.g. "AKER@Wash_RGBW_7C@Second_version.gdtf".
-- `mode` (string): GDTF mode name, e.g. "7 Channels".
+- `mode` (string): exact GDTF mode name, passed through verbatim to BlenderDMX (e.g. "8 CH User- Calibrated 16 Bit", "Mode 6CH", "2: RGBW").
+- `channels` (int as string): channel count for the selected mode. Drives DMX address auto-assignment.
 
 ## Key constants
 
 - `FORWARD_LOCAL = (0, 0, 1)` — beam direction in block's local frame (+Z = up).
 - `VENUE_XFORM` — -90° rotation around X applied to venue geometry before GLB export.
-- `CHANNEL_MAP` — hardcoded dict `(gdtf_filename, mode_name) → channel_count`. Replace with GDTF parsing later.
 
 ## BlenderDMX specifics
 
@@ -63,7 +63,7 @@ Layer order under LIGHTS determines DMX address allocation order.
 
 ## Known issues
 
-- `CHANNEL_MAP` is hardcoded (POC). Production needs GDTF channel count parsing.
+- `channels` is user-supplied (no cross-check against the GDTF file). A typo will produce a wrong DMX patch. Future work: parse the GDTF zip and derive the channel count from `(gdtf, mode)`.
 - Single universe only.
 - No roll component in orientation (forward vector only, no up vector).
 - venue.glb -90° X rotation is a workaround for MapZToY=False + Blender Y/Z swap.

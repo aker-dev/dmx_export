@@ -34,13 +34,18 @@ The **order of sub-layers in Rhino** determines the DMX address allocation order
 
 ### User attributes per block instance
 
-| Key    | Example                                      | Required |
-|--------|----------------------------------------------|----------|
-| `id`   | `BI-01`                                      | yes      |
-| `gdtf` | `AKER@Wash_RGBW_7C@Second_version.gdtf`     | yes      |
-| `mode` | `7 Channels`                                 | yes      |
+| Key        | Example                                      | Required |
+|------------|----------------------------------------------|----------|
+| `id`       | `BI-01`                                      | yes      |
+| `gdtf`     | `AKER@Wash_RGBW_7C@Second_version.gdtf`      | yes      |
+| `mode`     | `8 CH User- Calibrated 16 Bit`               | yes      |
+| `channels` | `7`                                          | yes      |
 
 The `gdtf` value is the **filename on disk** in BlenderDMX's profile cache (not the display name shown in the dropdown).
+
+The `mode` value is the **exact DMX mode name** as written in the GDTF file (it can contain spaces, hyphens, colons — e.g. `"Mode 6CH"`, `"2: RGBW"`). It is passed through unchanged to BlenderDMX's `add_fixture(mode=...)`, so it must match the GDTF mode string verbatim.
+
+The `channels` value is the **channel count for the selected mode**, as an integer. Used for DMX address auto-assignment.
 
 ## Installation
 
@@ -91,7 +96,7 @@ The script creates each fixture with the correct GDTF profile, DMX address, name
 
 ```
 id;layer;gdtf;mode;channels;X;Y;Z;fX;fY;fZ;universe;address
-BI-01;B200-INT;AKER@Wash_RGBW_7C@Second_version.gdtf;7 Channels;7;-14.726;-16.510;0.000;0.000;0.000;1.000;1;1
+BI-01;B200-INT;AKER@Wash_RGBW_7C@Second_version.gdtf;8 CH User- Calibrated 16 Bit;7;-14.726;-16.510;0.000;0.000;0.000;1.000;1;1
 ```
 
 ### JSON
@@ -108,7 +113,7 @@ BI-01;B200-INT;AKER@Wash_RGBW_7C@Second_version.gdtf;7 Channels;7;-14.726;-16.51
       "id": "BI-01",
       "layer": "B200-INT",
       "gdtf": "AKER@Wash_RGBW_7C@Second_version.gdtf",
-      "mode": "7 Channels",
+      "mode": "8 CH User- Calibrated 16 Bit",
       "channels": 7,
       "position": [-14.726, -16.510, 0.0],
       "forward": [0.0, 0.0, 1.0],
@@ -124,10 +129,10 @@ Addresses are assigned sequentially across a single universe:
 
 1. Sub-layers under `LIGHTS` are iterated **in Rhino's layer panel order** (`SortIndex`).
 2. Within each sub-layer, fixtures are sorted **alphabetically by `id`**.
-3. Each fixture occupies N channels (looked up from `CHANNEL_MAP` in the script).
+3. Each fixture occupies N channels, read from its `channels` user attribute.
 4. The next fixture starts at the previous fixture's address + channel count.
 
-The channel count per fixture is hardcoded in `CHANNEL_MAP` inside the script. For production, this will be replaced by GDTF parsing.
+The channel count per fixture is read from the `channels` user attribute on the block instance. It must match the channel count of the GDTF mode selected via the `mode` attribute (no cross-check is performed against the GDTF file).
 
 ## Forward vector convention
 
@@ -144,7 +149,7 @@ The `venue.glb` requires a **-90° X pre-rotation** because Rhino's `FileGltf.Wr
 ## Limitations
 
 - Single DMX universe only (production will support multi-universe).
-- Channel count per fixture is hardcoded in `CHANNEL_MAP` (no GDTF parsing yet).
+- Channel count per fixture is user-supplied via the `channels` attribute (no automatic derivation from the GDTF file — a typo will produce a wrong patch).
 - No fixture rotation export beyond forward vector (no roll).
 - `venue.glb` pre-rotation is hardcoded at -90° X.
 - No `.glb` export per fixture model (BlenderDMX uses GDTF geometry directly).
